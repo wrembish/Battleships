@@ -188,8 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     rotateButton.addEventListener('click', rotate)
 
-    let isTouch = false
-
     //move around user ship
     ships.forEach(ship => ship.addEventListener('dragstart', dragStart))
     userSquares.forEach(square => {
@@ -199,13 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
         square.addEventListener('dragleave', dragLeave)
         square.addEventListener('drop', dragDrop)
         square.addEventListener('dragend', dragEnd)
-        // testing these?
-        square.addEventListener('touchstart', (e) => {
-            isTouch = true
-            dragStart(e)
-        })
-        square.addEventListener('touchmove', dragOver)
-        square.addEventListener('touchend', dragDrop)
     })
 
     ships.forEach(ship => ship.addEventListener('mousedown', (e) => {
@@ -213,8 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(selectedShipNameWithIndex)
     }))
 
-    function dragStart(e) {
-        if (isTouch) e.preventDefault()
+    function dragStart() {
         draggedShip = this
         draggedShipLength = this.childNodes.length
         console.log(draggedShip)
