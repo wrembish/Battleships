@@ -13,7 +13,6 @@
 * Made it so the drag and drop for placing ships worked on mobile as well
 * Improved the computer AI to try to track down the ship when it gets a hit
   * Improved the tracking AI even further to try and track multiple ship if the computer hits more than one ship
-* Fixed the game allowing you to click a square after the computer already won
 * Added difficulty to Singleplayer mode with different levels of AI intelligence
 
 ## Planned Improvements
