@@ -360,8 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let currAI
         if(gameMode === 'singlePlayer') {
             // If the computer hasn't stored any moves in the computerAI array, pick a random move
-            if (computerAI.length === 0 && computerTrack.length === 0) square = Math.floor(Math.random() * userSquares.length)
-            else if(computerAI.length === 0) {
+            if (difficulty === 'Easy' || (computerAI.length === 0 && computerTrack.length === 0)) square = Math.floor(Math.random() * userSquares.length)
+            else if(difficulty === 'Hard' && computerAI.length === 0) {
                 const i = computerTrack.pop()
                 console.log(i)
                 if (!leftOOB.includes(i-1)) computerAI.push({ index: i-1, priority: 0, direction: 'left' })
@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (i+10 < 100) computerAI.push({ index: i+10, priority: 0, direction: 'down' })
                 computerTrack.push(i)
             }
-            if(computerAI.length !== 0) {
+            if(difficulty !== 'Easy' && computerAI.length !== 0) {
                 // find if there is any high priority moves (gives a priority of 1 to same direction momentum)
                 for(const i in computerAI) {
                     if(computerAI[i].priority === 1) {
@@ -391,8 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const hit = userSquares[square].classList.contains('taken')
             userSquares[square].classList.add(hit ? 'boom' : 'miss')
             // if the computer gets a hit
-            if(hit && gameMode === 'singlePlayer') {
-                computerTrack.push(square)
+            if(hit && gameMode === 'singlePlayer' && difficulty !== 'Easy') {
+                if(difficulty === 'Hard') computerTrack.push(square)
                 // if the computer isn't tracking any moves yet, add all sqaures around the hit that aren't out of bounds
                 if(!currAI) {
                     if (!leftOOB.includes(square-1)) computerAI.push({ index: square-1, priority: 0, direction: 'left' })
@@ -512,8 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enemyDestroyerCount = 10
             if(gameMode === 'singlePlayer') {
                 computerAI = []
-                computerTrack.splice(computerTrack.length-2)
-                console.log(computerTrack)
+                if (difficulty === 'Hard') computerTrack.splice(computerTrack.length-2)
             }
         }
         if (enemySubmarineCount === 3) {
@@ -521,8 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enemySubmarineCount = 10
             if(gameMode === 'singlePlayer') {
                 computerAI = []
-                computerTrack.splice(computerTrack.length-3)
-                console.log(computerTrack)
+                if (difficulty === 'Hard') computerTrack.splice(computerTrack.length-3)
             }
         }
         if (enemyCruiserCount === 3) {
@@ -530,8 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enemyCruiserCount = 10
             if(gameMode === 'singlePlayer') {
                 computerAI = []
-                computerTrack.splice(computerTrack.length-3)
-                console.log(computerTrack)
+                if (difficulty === 'Hard') computerTrack.splice(computerTrack.length-3)
             }
         }
         if (enemyBattleshipCount === 4) {
@@ -539,8 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enemyBattleshipCount = 10
             if(gameMode === 'singlePlayer') {
                 computerAI = []
-                computerTrack.splice(computerTrack.length-4)
-                console.log(computerTrack)
+                if (difficulty === 'Hard') computerTrack.splice(computerTrack.length-4)
             }
         }
         if (enemyCarrierCount === 5) {
@@ -548,8 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enemyCarrierCount = 10
             if(gameMode === 'singlePlayer') {
                 computerAI = []
-                computerTrack.splice(computerTrack.length-5)
-                console.log(computerTrack)
+                if (difficulty === 'Hard') computerTrack.splice(computerTrack.length-5)
             }
         }
         if ((destroyerCount + submarineCount + cruiserCount + battleshipCount + carrierCount) === 50) {
