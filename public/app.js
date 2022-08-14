@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const computerSquares = []
     const width = 10
     let computerAI = [] // Array to track moves the computer decides are more likely to contain a hit
+    let computerTrack = []
     let isHorizontal = true
     let isGameOver = false
     let currentPlayer = 'user'
@@ -118,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup event listener for firing
         computerSquares.forEach(square => {
             square.addEventListener('click', () => {
-                if(currentPlayer === 'user' && ready && enemyReady) {
+                if(currentPlayer === 'user' && ready && enemyReady && !isGameOver) {
                     shotFired = square.dataset.id
                     socket.emit('fire', shotFired)
                 }
@@ -359,8 +360,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let currAI
         if(gameMode === 'singlePlayer') {
             // If the computer hasn't stored any moves in the computerAI array, pick a random move
-            if (computerAI.length === 0) square = Math.floor(Math.random() * userSquares.length)
-            else {
+            if (computerAI.length === 0 && computerTrack.length === 0) square = Math.floor(Math.random() * userSquares.length)
+            else if(computerAI.length === 0) {
+                const i = computerTrack.pop()
+                console.log(i)
+                if (!leftOOB.includes(i-1)) computerAI.push({ index: i-1, priority: 0, direction: 'left' })
+                if (!rightOOB.includes(i+1)) computerAI.push({ index: i+1, priority: 0, direction: 'right' })
+                if (i-10 > 0) computerAI.push({ index: i-10, priority: 0, direction: 'up' })
+                if (i+10 < 100) computerAI.push({ index: i+10, priority: 0, direction: 'down' })
+                computerTrack.push(i)
+            }
+            if(computerAI.length !== 0) {
                 // find if there is any high priority moves (gives a priority of 1 to same direction momentum)
                 for(const i in computerAI) {
                     if(computerAI[i].priority === 1) {
@@ -382,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userSquares[square].classList.add(hit ? 'boom' : 'miss')
             // if the computer gets a hit
             if(hit && gameMode === 'singlePlayer') {
+                computerTrack.push(square)
                 // if the computer isn't tracking any moves yet, add all sqaures around the hit that aren't out of bounds
                 if(!currAI) {
                     if (!leftOOB.includes(square-1)) computerAI.push({ index: square-1, priority: 0, direction: 'left' })
@@ -402,30 +413,38 @@ document.addEventListener('DOMContentLoaded', () => {
                             computerAI.push(ship) 
                             // add the next square in the same direction if it is in bounds and give it priority
                         } else if(currAI.direction ===  ship.direction) {
-                            if (currAI.direction === 'up' && currAI.index - width >= 0) {
-                                computerAI.push({
-                                    index : currAI.index - width,
-                                    direction : 'up',
-                                    priority : 1
-                                })
-                            } else if(currAI.direction === 'down' && currAI.index + width < width*width) {
-                                computerAI.push({
-                                    index : currAI.index + width,
-                                    direction : 'down',
-                                    priority : 1
-                                })
-                            } else if(currAI.direction === 'left' && !leftOOB.includes(currAI.index-1)) {
-                                computerAI.push({
-                                    index : currAI.index - 1,
-                                    direction : 'left',
-                                    priority : 1
-                                })
-                            } else if(currAI.direction === 'right' && !rightOOB.includes(currAI.index+1)) {
-                                computerAI.push({
-                                    index : currAI.index + 1,
-                                    direction : 'right',
-                                    priority : 1
-                                })
+                            if (currAI.direction === 'up') {
+                                if(currAI.index - width >= 0) {
+                                    computerAI.push({
+                                        index : currAI.index - width,
+                                        direction : 'up',
+                                        priority : 1
+                                    })
+                                } else computerTrack.reverse()
+                            } else if(currAI.direction === 'down') {
+                                if(currAI.index + width < width*width) {
+                                    computerAI.push({
+                                        index : currAI.index + width,
+                                        direction : 'down',
+                                        priority : 1
+                                    })
+                                } else computerTrack.reverse()
+                            } else if(currAI.direction === 'left') {
+                                if(!leftOOB.includes(currAI.index-1)) {
+                                    computerAI.push({
+                                        index : currAI.index - 1,
+                                        direction : 'left',
+                                        priority : 1
+                                    })
+                                } else computerTrack.reverse()
+                            } else if(currAI.direction === 'right') {
+                                if(!rightOOB.includes(currAI.index+1)) {
+                                    computerAI.push({
+                                        index : currAI.index + 1,
+                                        direction : 'right',
+                                        priority : 1
+                                    })
+                                } else computerTrack.reverse()
                             }
                         }
                     })
@@ -440,6 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             console.log('>>>computerAI', computerAI)
+            console.log('>>>computerTrack', computerTrack)
             if (userSquares[square].classList.contains('destroyer')) enemyDestroyerCount++
             if (userSquares[square].classList.contains('submarine')) enemySubmarineCount++
             if (userSquares[square].classList.contains('cruiser')) enemyCruiserCount++
@@ -490,27 +510,47 @@ document.addEventListener('DOMContentLoaded', () => {
         if (enemyDestroyerCount === 2) {
             infoDisplay.innerHTML = `${enemy} sunk your destroyer`
             enemyDestroyerCount = 10
-            if(gameMode === 'singlePlayer') computerAI = []
+            if(gameMode === 'singlePlayer') {
+                computerAI = []
+                computerTrack.splice(computerTrack.length-2)
+                console.log(computerTrack)
+            }
         }
         if (enemySubmarineCount === 3) {
             infoDisplay.innerHTML = `${enemy} sunk your submarine`
             enemySubmarineCount = 10
-            if(gameMode === 'singlePlayer') computerAI = []
+            if(gameMode === 'singlePlayer') {
+                computerAI = []
+                computerTrack.splice(computerTrack.length-3)
+                console.log(computerTrack)
+            }
         }
         if (enemyCruiserCount === 3) {
             infoDisplay.innerHTML = `${enemy} sunk your cruiser`
             enemyCruiserCount = 10
-            if(gameMode === 'singlePlayer') computerAI = []
+            if(gameMode === 'singlePlayer') {
+                computerAI = []
+                computerTrack.splice(computerTrack.length-3)
+                console.log(computerTrack)
+            }
         }
         if (enemyBattleshipCount === 4) {
             infoDisplay.innerHTML = `${enemy} sunk your battleship`
             enemyBattleshipCount = 10
-            if(gameMode === 'singlePlayer') computerAI = []
+            if(gameMode === 'singlePlayer') {
+                computerAI = []
+                computerTrack.splice(computerTrack.length-4)
+                console.log(computerTrack)
+            }
         }
         if (enemyCarrierCount === 5) {
             infoDisplay.innerHTML = `${enemy} sunk your carrier`
             enemyCarrierCount = 10
-            if(gameMode === 'singlePlayer') computerAI = []
+            if(gameMode === 'singlePlayer') {
+                computerAI = []
+                computerTrack.splice(computerTrack.length-5)
+                console.log(computerTrack)
+            }
         }
         if ((destroyerCount + submarineCount + cruiserCount + battleshipCount + carrierCount) === 50) {
             infoDisplay.innerHTML = "YOU WIN"
