@@ -14,10 +14,8 @@
 * Improved the computer AI to try to track down the ship when it gets a hit
   * Improved the tracking AI even further to try and track multiple ship if the computer hits more than one ship
 * Fixed the game allowing you to click a square after the computer already won
+* Added difficulty to Singleplayer mode with different levels of AI intelligence
 
 ## Planned Improvements
 * Add a queue when current server is full to
 * Add a spectator mode to spectate the current multiplayer game
-* Add Difficulties for singleplayer
-  * Easy mode would be the game without my AI improvements
-  * Maybe try to make the AI even smarter for a hard mode
