@@ -12,6 +12,7 @@
 * Made it so the game wouldn't register a move if it was a square that you already clicked on
 * Made it so the drag and drop for placing ships worked on mobile as well
 * Improved the computer AI to try to track down the ship when it gets a hit
+* Fixed the game allowing you to click a square after the computer already won
 
 ## Planned Improvements
 * Add a queue when current server is full to
