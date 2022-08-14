@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userSquares = []
     const computerSquares = []
     const width = 10
+    let computerAI = [] // Array to track moves the computer decides are more likely to contain a hit
     let isHorizontal = true
     let isGameOver = false
     let currentPlayer = 'user'
@@ -49,6 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'battleship', directions: [ [0, 1, 2, 3], [0, width, width * 2, width * 3] ] },
         { name: 'carrier', directions: [ [0, 1, 2, 3, 4], [0, width, width * 2, width * 3, width * 4] ] },
     ]
+
+    // arrays for the left out of bounds squares and right out of bounds squares
+    const leftOOB = []
+    for (let i = -1; i < width*width; i += width) leftOOB.push(i)
+    const rightOOB = []
+    for (let i = width; i < width*width + 1; i+=width)  rightOOB.push(i)
 
     createBoard(userGrid, userSquares)
     createBoard(computerGrid, computerSquares)
@@ -144,8 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
         shipArray.forEach(ship => { generate(ship) })
 
         startButton.addEventListener('click', () => {
-            setupButtons.style.display = 'none'
-            playGameSingle()
+            if (allShipsPlaced) {
+                setupButtons.style.display = 'none'
+                playGameSingle()
+            }
+            else infoDisplay.innerHTML = 'Please place all ships'
         })
     }
 
@@ -345,17 +355,110 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function enemyGo(square) {
-        if (gameMode === 'singlePlayer') square = Math.floor(Math.random() * userSquares.length)
-        if (!userSquares[square].classList.contains('boom')) {
+        // variable to store the full computer AI object if there are moves in the computerAI array
+        let currAI
+        if(gameMode === 'singlePlayer') {
+            // If the computer hasn't stored any moves in the computerAI array, pick a random move
+            if (computerAI.length === 0) square = Math.floor(Math.random() * userSquares.length)
+            else {
+                // find if there is any high priority moves (gives a priority of 1 to same direction momentum)
+                for(const i in computerAI) {
+                    if(computerAI[i].priority === 1) {
+                        square = computerAI[i].index
+                        currAI = computerAI[i]
+                        break
+                    }
+                }
+                // if the computer didn't find any high priority moves, select one from the computerAI array randomly
+                if (!square) {
+                    const i = Math.floor(Math.random() * computerAI.length)
+                    currAI = computerAI[i]
+                    square = computerAI[i].index
+                }
+            }
+        }
+        if (!userSquares[square].classList.contains('boom') && !userSquares[square].classList.contains('miss')) {   
             const hit = userSquares[square].classList.contains('taken')
             userSquares[square].classList.add(hit ? 'boom' : 'miss')
+            // if the computer gets a hit
+            if(hit && gameMode === 'singlePlayer') {
+                // if the computer isn't tracking any moves yet, add all sqaures around the hit that aren't out of bounds
+                if(!currAI) {
+                    if (!leftOOB.includes(square-1)) computerAI.push({ index: square-1, priority: 0, direction: 'left' })
+                    if (!rightOOB.includes(square+1)) computerAI.push({ index: square+1, priority: 0, direction: 'right' })
+                    if (square-10 > 0) computerAI.push({ index: square-10, priority: 0, direction: 'up' })
+                    if (square+10 < 100) computerAI.push({ index: square+10, priority: 0, direction: 'down' })
+                } else { // otherwise remove the perpendicular directions and the hit move, and then add the next move in that
+                        // direction with a high priority
+                    let tempAI = computerAI
+                    // create a temp array to loop through and reset computerAI to an empty array to only add back desired moves
+                    computerAI = []
+                    tempAI.forEach(ship => {
+                        // keep the opposite direction move from the one that just got a hit
+                        if((currAI.direction === 'up' && ship.direction === 'down')
+                        || (currAI.direction === 'down' && ship.direction === 'up')
+                        || (currAI.direction === 'left' && ship.direction === 'right')
+                        || (currAI.direction === 'right' && ship.direction === 'left')) {
+                            computerAI.push(ship) 
+                            // add the next square in the same direction if it is in bounds and give it priority
+                        } else if(currAI.direction ===  ship.direction) {
+                            if (currAI.direction === 'up' && currAI.index - width >= 0) {
+                                computerAI.push({
+                                    index : currAI.index - width,
+                                    direction : 'up',
+                                    priority : 1
+                                })
+                            } else if(currAI.direction === 'down' && currAI.index + width < width*width) {
+                                computerAI.push({
+                                    index : currAI.index + width,
+                                    direction : 'down',
+                                    priority : 1
+                                })
+                            } else if(currAI.direction === 'left' && !leftOOB.includes(currAI.index-1)) {
+                                computerAI.push({
+                                    index : currAI.index - 1,
+                                    direction : 'left',
+                                    priority : 1
+                                })
+                            } else if(currAI.direction === 'right' && !rightOOB.includes(currAI.index+1)) {
+                                computerAI.push({
+                                    index : currAI.index + 1,
+                                    direction : 'right',
+                                    priority : 1
+                                })
+                            }
+                        }
+                    })
+                }
+            } else {
+                // remove the move if it was a miss
+                for(const i in computerAI) {
+                    if(computerAI[i] === currAI) {
+                        computerAI.splice(i, 1)
+                        break
+                    }
+                }
+            }
+            console.log('>>>computerAI', computerAI)
             if (userSquares[square].classList.contains('destroyer')) enemyDestroyerCount++
             if (userSquares[square].classList.contains('submarine')) enemySubmarineCount++
             if (userSquares[square].classList.contains('cruiser')) enemyCruiserCount++
             if (userSquares[square].classList.contains('battleship')) enemyBattleshipCount++
             if (userSquares[square].classList.contains('carrier')) enemyCarrierCount++
             checkForWins()
-        } else if (gameMode === 'singlePlayer') enemyGo() 
+        } else if (gameMode === 'singlePlayer') {
+            // when the computer chooses a square that has already been visited, remove it from the
+            // computerAI array if present
+            if(currAI) {
+                for(const i in computerAI) {
+                    if(computerAI[i] === currAI) {
+                        computerAI.splice(i, 1)
+                        break
+                    }
+                }
+            }
+            enemyGo() 
+        }
         currentPlayer = 'user'
         turnDisplay.innerHTML = 'Your Go'
     }
@@ -383,25 +486,31 @@ document.addEventListener('DOMContentLoaded', () => {
             infoDisplay.innerHTML = `You sunk the ${enemy}'s carrier`
             carrierCount = 10
         }
+        // as soon as the computer sinks the ship it was chasing, clear the computerAI array
         if (enemyDestroyerCount === 2) {
             infoDisplay.innerHTML = `${enemy} sunk your destroyer`
             enemyDestroyerCount = 10
+            if(gameMode === 'singlePlayer') computerAI = []
         }
         if (enemySubmarineCount === 3) {
             infoDisplay.innerHTML = `${enemy} sunk your submarine`
             enemySubmarineCount = 10
+            if(gameMode === 'singlePlayer') computerAI = []
         }
         if (enemyCruiserCount === 3) {
             infoDisplay.innerHTML = `${enemy} sunk your cruiser`
             enemyCruiserCount = 10
+            if(gameMode === 'singlePlayer') computerAI = []
         }
         if (enemyBattleshipCount === 4) {
             infoDisplay.innerHTML = `${enemy} sunk your battleship`
             enemyBattleshipCount = 10
+            if(gameMode === 'singlePlayer') computerAI = []
         }
         if (enemyCarrierCount === 5) {
             infoDisplay.innerHTML = `${enemy} sunk your carrier`
             enemyCarrierCount = 10
+            if(gameMode === 'singlePlayer') computerAI = []
         }
         if ((destroyerCount + submarineCount + cruiserCount + battleshipCount + carrierCount) === 50) {
             infoDisplay.innerHTML = "YOU WIN"
